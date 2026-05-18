@@ -409,6 +409,14 @@ function apiCall(fn, ...args) {
   return Promise.reject(new Error('Acção desconhecida.'));
 }
 
+function friendlyError(err) {
+  const message = String(err && err.message ? err.message : err || '');
+  if (message.includes('script.send_mail') || message.includes('MailApp')) {
+    return 'Falta autorizar o envio de emails no Google Apps Script. A cirurgia não foi gravada nem o stock alterado.';
+  }
+  return message || 'Erro inesperado.';
+}
+
 async function syncAll() {
   const btn = $('syncBtn');
   const status = $('syncStatus');
@@ -427,13 +435,14 @@ async function syncAll() {
     toast('Sincronizado', 'success');
   } catch (err) {
     console.error(err);
-    syncError = err;
+    const message = friendlyError(err);
+    syncError = { message };
     stock = [];
     surgeries = [];
     renderAll();
     status.className = 'sync-status error';
-    status.textContent = err.message || 'Erro ao sincronizar com a Google Sheet.';
-    toast(err.message || 'Erro ao sincronizar', 'error');
+    status.textContent = message;
+    toast(message, 'error');
   } finally {
     btn.classList.remove('loading');
   }
@@ -554,7 +563,7 @@ async function saveSurgery() {
     toast(result && result.emailSent ? 'Cirurgia guardada · email enviado à Carla' : 'Cirurgia guardada', 'success');
   } catch (err) {
     console.error(err);
-    toast(err.message || 'Erro ao guardar cirurgia', 'error');
+    toast(friendlyError(err), 'error');
   } finally {
     btn.textContent = 'Guardar cirurgia';
     validateSurgery();
