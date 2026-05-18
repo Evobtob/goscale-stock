@@ -219,9 +219,12 @@
   .history-details { display: none; border-top: 1px solid var(--stroke2); padding: 8px 15px 14px; }
   .history-card.open .history-details { display: block; }
   .used-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; color: var(--muted); font-size: 14px; }
-  .badge { border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 800; color: #fff; }
+  .badge { border: 0; border-radius: 999px; padding: 5px 10px; font-size: 11px; font-weight: 800; color: #fff; }
+  button.badge { cursor: pointer; min-height: 28px; }
+  button.badge:disabled { opacity: .72; cursor: default; }
   .badge.used { background: var(--red); }
   .badge.returned { background: var(--green); color: #001b08; }
+  .badge.pending { background: rgba(48,209,88,.22); color: var(--green); border: 1px solid rgba(48,209,88,.45); }
 
   .empty-state { border-radius: 24px; padding: 28px 18px; text-align: center; color: var(--muted); }
   .empty-state strong { display: block; color: var(--text); margin-bottom: 5px; }
@@ -406,6 +409,7 @@ function apiCall(fn, ...args) {
   if (fn === 'getStock' || fn === 'getCirurgias') return jsonpCall(fn);
   if (fn === 'addStock') return jsonpCall('addStock', { tamanho: args[0], quantidade: args[1], referencia: args[2] || '' });
   if (fn === 'createCirurgia') return jsonpCall('createCirurgia', { payload: args[0] });
+  if (fn === 'undoUsedImplant') return jsonpCall('undoUsedImplant', { cirurgiaId: args[0], usedIndex: args[1] });
   return Promise.reject(new Error('Acção desconhecida.'));
 }
 
@@ -589,17 +593,45 @@ function renderHistory() {
     const usados = Array.isArray(c.usados) ? c.usados : [];
     const devolvidos = Array.isArray(c.devolvidos) ? c.devolvidos : [];
     const data = c.data ? new Date(c.data).toLocaleDateString('pt-PT') : '—';
-    const rows = [...usados.map(i => ({...i, status:'used'})), ...devolvidos.map(i => ({...i, status:'returned'}))];
+    const rows = [
+      ...usados.map((i, idx) => ({...i, status:'used', usedIndex: idx})),
+      ...devolvidos.map(i => ({...i, status:'returned'}))
+    ];
     return `<article class="history-card" onclick="this.classList.toggle('open')">
       <div class="history-head">
         <div><div class="history-title">${escapeHtml(c.paciente || 'Sem paciente')}</div><div class="history-meta">${data} · ${usados.length} usados · ${devolvidos.length} devolvidos</div></div>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
       </div>
       <div class="history-details">
-        ${rows.length ? rows.map(i => `<div class="used-row"><span>${escapeHtml(i.tamanho || i)}</span><span class="badge ${i.status}">${i.status === 'used' ? 'Usado' : 'Devolvido'}</span></div>`).join('') : '<div class="used-row">Sem detalhes</div>'}
+        ${rows.length ? rows.map(i => {
+          const label = escapeHtml(i.tamanho || i);
+          if (i.status === 'used') {
+            return `<div class="used-row"><span>${label}</span><button class="badge used" onclick="undoUsedImplant(event, ${Number(c.id)}, ${Number(i.usedIndex)})" aria-label="Marcar ${label} como não usado e repor stock">Usado</button></div>`;
+          }
+          return `<div class="used-row"><span>${label}</span><span class="badge returned">Não usado</span></div>`;
+        }).join('') : '<div class="used-row">Sem detalhes</div>'}
       </div>
     </article>`;
   }).join('');
+}
+
+async function undoUsedImplant(event, cirurgiaId, usedIndex) {
+  event.stopPropagation();
+  const btn = event.currentTarget;
+  btn.disabled = true;
+  btn.className = 'badge pending';
+  btn.textContent = 'Não usado';
+  try {
+    await apiCall('undoUsedImplant', cirurgiaId, usedIndex);
+    toast('Implante reposto em stock', 'success');
+    await syncAll();
+  } catch (err) {
+    console.error(err);
+    btn.disabled = false;
+    btn.className = 'badge used';
+    btn.textContent = 'Usado';
+    toast(err.message || 'Erro ao repor implante', 'error');
+  }
 }
 
 function switchTab(tab) {
