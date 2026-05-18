@@ -38,6 +38,9 @@ function handleApi_(e) {
       case 'undoUsedImplant':
         result = { ok: true, data: undoUsedImplant(p.cirurgiaId, p.usedIndex) };
         break;
+      case 'mailHealth':
+        result = { ok: true, data: { remainingDailyQuota: MailApp.getRemainingDailyQuota() } };
+        break;
       default:
         throw new Error('Acção API desconhecida.');
     }
