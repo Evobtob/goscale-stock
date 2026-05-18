@@ -184,6 +184,7 @@ function createCirurgia(payload) {
 
   const usados = itens.filter(i => i.status === 'usado');
   const devolvidos = itens.filter(i => i.status === 'devolvido');
+  assertMailAuthorized_();
 
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
@@ -281,6 +282,10 @@ function undoUsedImplant(cirurgiaId, usedIndex) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function assertMailAuthorized_() {
+  MailApp.getRemainingDailyQuota();
 }
 
 function sendPreparationEmail_(paciente, dataCirurgia, itens, usados, devolvidos) {
