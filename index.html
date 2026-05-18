@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GoScale">
+<meta name="theme-color" content="#050506">
+<link rel="manifest" href="manifest.json">
+<title>GoScale — Stock Implantes</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #050506;
+    --bg2: #111114;
+    --surface: rgba(28, 28, 30, .72);
+    --surface-strong: rgba(44, 44, 46, .92);
+    --glass: rgba(255, 255, 255, .075);
+    --glass2: rgba(255, 255, 255, .115);
+    --stroke: rgba(255, 255, 255, .13);
+    --stroke2: rgba(255, 255, 255, .08);
+    --text: #f5f5f7;
+    --muted: rgba(235, 235, 245, .62);
+    --muted2: rgba(235, 235, 245, .38);
+    --blue: #0a84ff;
+    --green: #30d158;
+    --red: #ff453a;
+    --yellow: #ffd60a;
+    --radius: 24px;
+    --tab-height: 76px;
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { min-height: 100%; background: var(--bg); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    letter-spacing: -0.24px;
+  }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+
+  .app {
+    min-height: 100dvh;
+    max-width: 760px;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 20% 0%, rgba(10,132,255,.22), transparent 35%),
+      radial-gradient(circle at 100% 20%, rgba(48,209,88,.12), transparent 28%),
+      linear-gradient(180deg, #101014 0%, #050506 48%, #000 100%);
+  }
+
+  .app::before {
+    content: "";
+    position: absolute;
+    inset: -120px -80px auto;
+    height: 310px;
+    background: linear-gradient(135deg, rgba(255,255,255,.16), transparent 50%);
+    filter: blur(35px);
+    pointer-events: none;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding: calc(env(safe-area-inset-top, 0px) + 14px) 18px 12px;
+    background: rgba(5,5,6,.58);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border-bottom: 1px solid var(--stroke2);
+  }
+
+  .toprow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .eyebrow { color: var(--muted); font-size: 13px; font-weight: 600; }
+  h1 { font-size: 34px; line-height: 1.02; letter-spacing: -1.15px; margin-top: 3px; }
+  .sync-btn {
+    border: 1px solid var(--stroke);
+    color: #fff;
+    background: var(--glass2);
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    min-height: 40px;
+    padding: 0 14px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .sync-btn.loading svg { animation: spin .9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 16px; }
+  .stat-card {
+    min-height: 78px;
+    border-radius: 20px;
+    padding: 12px;
+    background: var(--glass);
+    border: 1px solid var(--stroke);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .stat-card strong { display: block; font-size: 27px; line-height: 1; letter-spacing: -1px; }
+  .stat-card span { display: block; margin-top: 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+  .stat-card.alert strong { color: var(--yellow); }
+  .stat-card.zero strong { color: var(--red); }
+
+  .page {
+    height: calc(100dvh - 158px);
+    overflow-y: auto;
+    padding: 16px 16px calc(var(--tab-height) + var(--safe-bottom) + 22px);
+    -webkit-overflow-scrolling: touch;
+  }
+  .page::-webkit-scrollbar { width: 0; }
+  .hidden { display: none !important; }
+
+  .search-box, .field, .select-card, .history-card, .repo-panel, .empty-state {
+    background: var(--surface);
+    border: 1px solid var(--stroke);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 20px 55px rgba(0,0,0,.25);
+    backdrop-filter: blur(26px) saturate(170%);
+    -webkit-backdrop-filter: blur(26px) saturate(170%);
+  }
+
+  .search-box { border-radius: 18px; display: flex; align-items: center; gap: 10px; padding: 12px 14px; position: sticky; top: 0; z-index: 5; }
+  .search-box svg { color: var(--muted); flex: none; }
+  .search-box input { width: 100%; background: transparent; border: 0; outline: 0; color: var(--text); font-size: 16px; }
+  .search-box input::placeholder, .field::placeholder { color: var(--muted2); }
+
+  .section-label { margin: 18px 2px 9px; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .65px; text-transform: uppercase; }
+  .sync-status { margin: 10px 2px 0; min-height: 18px; color: var(--muted); font-size: 12px; font-weight: 650; }
+  .sync-status.error { color: #ff9a93; }
+  .sync-status.success { color: rgba(48,209,88,.95); }
+  .stock-list, .selected-list, .history-list { display: grid; gap: 10px; }
+
+  .implant-card {
+    min-height: 76px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--radius);
+    background: linear-gradient(180deg, rgba(255,255,255,.105), rgba(255,255,255,.045));
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 18px 42px rgba(0,0,0,.24);
+  }
+  .implant-card:active { transform: scale(.992); }
+  .implant-card.disabled { opacity: .42; }
+  .implant-icon {
+    width: 46px; height: 46px; border-radius: 16px;
+    display: grid; place-items: center;
+    background: rgba(10,132,255,.18);
+    color: var(--blue);
+    flex: none;
+  }
+  .implant-card.low .implant-icon { background: rgba(255,214,10,.16); color: var(--yellow); }
+  .implant-card.zero .implant-icon { background: rgba(255,69,58,.13); color: var(--red); }
+  .implant-main { min-width: 0; flex: 1; }
+  .implant-title { font-size: 17px; font-weight: 760; letter-spacing: -.35px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .implant-ref { margin-top: 3px; color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .qty-pill {
+    min-width: 46px; height: 42px; border-radius: 15px;
+    display: grid; place-items: center;
+    background: rgba(10,132,255,.16);
+    color: #8fc7ff;
+    font-size: 20px; font-weight: 800;
+  }
+  .low .qty-pill { background: rgba(255,214,10,.16); color: var(--yellow); }
+  .zero .qty-pill { background: rgba(255,69,58,.14); color: var(--red); }
+
+  .stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,255,255,.08);
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  .stepper button {
+    width: 34px; height: 34px; border: 0; border-radius: 50%;
+    color: #fff; background: rgba(255,255,255,.12); font-size: 21px; line-height: 1;
+  }
+  .stepper b { min-width: 18px; text-align: center; font-size: 16px; }
+
+  .form-grid { display: grid; gap: 12px; }
+  .field { width: 100%; border-radius: 18px; color: var(--text); padding: 15px; outline: 0; font-size: 16px; }
+  input[type="date"] { color-scheme: dark; }
+  .selected-list { margin-top: 12px; }
+  .select-card { border-radius: 22px; padding: 13px; display: grid; gap: 11px; }
+  .select-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 4px; background: rgba(255,255,255,.07); border-radius: 16px; border: 1px solid var(--stroke2); }
+  .segmented button { border: 0; border-radius: 13px; min-height: 38px; color: var(--muted); background: transparent; font-weight: 750; }
+  .segmented button.active.used { color: white; background: var(--red); }
+  .segmented button.active.returned { color: #001b08; background: var(--green); }
+
+  .primary-btn, .secondary-btn {
+    width: 100%; min-height: 52px; border: 0; border-radius: 18px;
+    color: #fff; font-weight: 770; font-size: 17px; letter-spacing: -.35px;
+    margin-top: 14px;
+  }
+  .primary-btn { background: linear-gradient(180deg, #1a91ff, #0071e3); box-shadow: 0 18px 45px rgba(10,132,255,.25); }
+  .secondary-btn { background: rgba(255,255,255,.11); border: 1px solid var(--stroke); }
+  .primary-btn:disabled, .secondary-btn:disabled { opacity: .38; box-shadow: none; }
+
+  .repo-panel { border-radius: 26px; padding: 14px; margin-bottom: 16px; }
+  .repo-row { display: grid; grid-template-columns: 1fr 104px; gap: 10px; }
+
+  .history-card { border-radius: 24px; overflow: hidden; }
+  .history-head { padding: 15px; display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  .history-title { font-size: 16px; font-weight: 760; }
+  .history-meta { margin-top: 3px; color: var(--muted); font-size: 13px; }
+  .history-details { display: none; border-top: 1px solid var(--stroke2); padding: 8px 15px 14px; }
+  .history-card.open .history-details { display: block; }
+  .used-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; color: var(--muted); font-size: 14px; }
+  .badge { border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 800; color: #fff; }
+  .badge.used { background: var(--red); }
+  .badge.returned { background: var(--green); color: #001b08; }
+
+  .empty-state { border-radius: 24px; padding: 28px 18px; text-align: center; color: var(--muted); }
+  .empty-state strong { display: block; color: var(--text); margin-bottom: 5px; }
+
+  .tabs {
+    position: fixed;
+    left: 50%; transform: translateX(-50%);
+    bottom: 0;
+    width: min(760px, 100%);
+    height: calc(var(--tab-height) + var(--safe-bottom));
+    padding: 8px 12px calc(8px + var(--safe-bottom));
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+    background: rgba(8,8,10,.62);
+    backdrop-filter: blur(30px) saturate(180%);
+    -webkit-backdrop-filter: blur(30px) saturate(180%);
+    border-top: 1px solid var(--stroke);
+    z-index: 30;
+  }
+  .tab {
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    border-radius: 20px;
+    display: grid; place-items: center;
+    align-content: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .tab.active { color: #fff; background: rgba(255,255,255,.11); border-color: var(--stroke); }
+  .tab svg { width: 22px; height: 22px; }
+
+  .toast {
+    position: fixed; top: calc(env(safe-area-inset-top, 0px) + 14px); left: 50%; transform: translateX(-50%);
+    z-index: 60; max-width: calc(100% - 28px); padding: 12px 16px; border-radius: 999px;
+    background: rgba(44,44,46,.88); border: 1px solid var(--stroke); color: #fff;
+    backdrop-filter: blur(24px) saturate(170%); -webkit-backdrop-filter: blur(24px) saturate(170%);
+    box-shadow: 0 18px 55px rgba(0,0,0,.35); font-size: 14px; font-weight: 700;
+  }
+  .toast.success { color: var(--green); }
+  .toast.error { color: #ff9a93; }
+
+  @media (min-width: 720px) {
+    .page { padding-inline: 22px; }
+    .stock-list { grid-template-columns: 1fr 1fr; }
+    h1 { font-size: 42px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div id="toast" class="toast hidden"></div>
+
+  <header class="topbar">
+    <div class="toprow">
+      <div>
+        <div class="eyebrow">GoSmile · Stock de implantes</div>
+        <h1>GoScale</h1>
+      </div>
+      <button class="sync-btn" id="syncBtn" onclick="syncAll()" aria-label="Sincronizar">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>
+        Sync
+      </button>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-card"><strong id="statTotal">—</strong><span>Unidades</span></div>
+      <div class="stat-card alert"><strong id="statLow">—</strong><span>Stock baixo</span></div>
+      <div class="stat-card zero"><strong id="statZero">—</strong><span>Sem stock</span></div>
+    </div>
+  </header>
+
+  <main id="page-stock" class="page">
+    <div class="search-box">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="searchInput" type="search" placeholder="Pesquisar tamanho ou referência" oninput="renderStock()">
+    </div>
+    <div id="syncStatus" class="sync-status">A sincronizar com a Sheet…</div>
+    <div class="section-label">Inventário</div>
+    <div id="stockList" class="stock-list"></div>
+  </main>
+
+  <main id="page-cirurgia" class="page hidden">
+    <div class="section-label">Nova cirurgia</div>
+    <div class="form-grid">
+      <input class="field" id="pacienteInput" type="text" placeholder="Paciente ou identificador interno" oninput="validateSurgery()">
+      <input class="field" id="dataInput" type="date" onchange="validateSurgery()">
+    </div>
+    <div class="section-label">Implantes seleccionados</div>
+    <div id="selectedList" class="selected-list"></div>
+    <button id="saveBtn" class="primary-btn" onclick="saveSurgery()" disabled>Guardar cirurgia</button>
+    <button class="secondary-btn" onclick="clearSelection()">Limpar selecção</button>
+  </main>
+
+  <main id="page-historico" class="page hidden">
+    <div class="repo-panel">
+      <div class="section-label" style="margin-top:0">Repor stock</div>
+      <div class="repo-row">
+        <input class="field" id="repoTamanho" type="text" placeholder="Tamanho">
+        <input class="field" id="repoQty" type="number" min="1" placeholder="Qtd">
+      </div>
+      <input class="field" id="repoRef" type="text" placeholder="Referência" style="margin-top:10px">
+      <button class="primary-btn" onclick="addStockUi()">Adicionar ao stock</button>
+    </div>
+    <div class="section-label">Histórico</div>
+    <div id="historyList" class="history-list"></div>
+  </main>
+
+  <nav class="tabs" aria-label="Navegação principal">
+    <button id="tab-stock" class="tab active" onclick="switchTab('stock')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      Stock
+    </button>
+    <button id="tab-cirurgia" class="tab" onclick="switchTab('cirurgia')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      Cirurgia
+    </button>
+    <button id="tab-historico" class="tab" onclick="switchTab('historico')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h6"/></svg>
+      Histórico
+    </button>
+  </nav>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const API_BASE = 'https://script.google.com/macros/s/AKfycbxO-VJPbyy_bFrd5fCRN-8iEHsq4t0qYMAWfxyRKXngCNCs7JLaN9CwV7aoT1ja5_U/exec';
+const hasGas = typeof google !== 'undefined' && google.script && google.script.run;
+let jsonpSeq = 0;
+let stock = [];
+let surgeries = [];
+let selection = []; // {id,tamanho,referencia,status}
+let lastSyncAt = null;
+let syncError = null;
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+function today() { return new Date().toISOString().slice(0, 10); }
+function sameItem(a, b) { return a.id === b.id; }
+function selectedCount(id) { return selection.filter(i => i.id === id).length; }
+function available(item) { return Math.max(0, Number(item.quantidade || 0) - selectedCount(item.id)); }
+function itemStatus(item) { const q = available(item); return q <= 0 ? 'zero' : q <= 2 ? 'low' : 'ok'; }
+
+function gasCall(fn, ...args) {
+  return new Promise((resolve, reject) => {
+    if (!hasGas) return reject(new Error('Google Apps Script indisponível'));
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(reject)[fn](...args);
+  });
+}
+
+function jsonpCall(action, params = {}) {
+  return new Promise((resolve, reject) => {
+    const cb = `__goscaleJsonp${Date.now()}_${jsonpSeq++}`;
+    const url = new URL(API_BASE);
+    url.searchParams.set('action', action);
+    url.searchParams.set('callback', cb);
+    url.searchParams.set('_', Date.now().toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) url.searchParams.set(key, typeof value === 'string' ? value : JSON.stringify(value));
+    });
+
+    const script = document.createElement('script');
+    const timer = setTimeout(() => cleanup(new Error('Tempo esgotado a contactar a Google Sheet.')), 15000);
+    function cleanup(err, data) {
+      clearTimeout(timer);
+      delete window[cb];
+      script.remove();
+      err ? reject(err) : resolve(data);
+    }
+    window[cb] = response => {
+      if (!response || response.ok === false) cleanup(new Error(response && response.error ? response.error : 'Erro na API.'));
+      else cleanup(null, response.data);
+    };
+    script.onerror = () => cleanup(new Error('Não foi possível contactar a API da Google Sheet.'));
+    script.src = url.toString();
+    document.head.appendChild(script);
+  });
+}
+
+function apiCall(fn, ...args) {
+  if (hasGas) return gasCall(fn, ...args);
+  if (fn === 'getStock' || fn === 'getCirurgias') return jsonpCall(fn);
+  if (fn === 'addStock') return jsonpCall('addStock', { tamanho: args[0], quantidade: args[1], referencia: args[2] || '' });
+  if (fn === 'createCirurgia') return jsonpCall('createCirurgia', { payload: args[0] });
+  return Promise.reject(new Error('Acção desconhecida.'));
+}
+
+async function syncAll() {
+  const btn = $('syncBtn');
+  const status = $('syncStatus');
+  btn.classList.add('loading');
+  status.className = 'sync-status';
+  status.textContent = 'A sincronizar com a Google Sheet…';
+  try {
+    const [stockData, surgeryData] = await Promise.all([apiCall('getStock'), apiCall('getCirurgias')]);
+    stock = Array.isArray(stockData) ? stockData : [];
+    surgeries = Array.isArray(surgeryData) ? surgeryData : [];
+    lastSyncAt = new Date();
+    syncError = null;
+    renderAll();
+    status.className = 'sync-status success';
+    status.textContent = `Sincronizada com a Google Sheet às ${lastSyncAt.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`;
+    toast('Sincronizado', 'success');
+  } catch (err) {
+    console.error(err);
+    syncError = err;
+    stock = [];
+    surgeries = [];
+    renderAll();
+    status.className = 'sync-status error';
+    status.textContent = err.message || 'Erro ao sincronizar com a Google Sheet.';
+    toast(err.message || 'Erro ao sincronizar', 'error');
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+function renderAll() { renderStats(); renderStock(); renderSelected(); renderHistory(); validateSurgery(); }
+function renderStats() {
+  const total = stock.reduce((sum, i) => sum + Number(i.quantidade || 0), 0);
+  const low = stock.filter(i => Number(i.quantidade || 0) > 0 && Number(i.quantidade || 0) <= 2).length;
+  const zero = stock.filter(i => Number(i.quantidade || 0) <= 0).length;
+  $('statTotal').textContent = total;
+  $('statLow').textContent = low;
+  $('statZero').textContent = zero;
+}
+
+function renderStock() {
+  const q = $('searchInput').value.trim().toLowerCase();
+  const list = $('stockList');
+  const rows = stock.filter(i => `${i.tamanho} ${i.referencia}`.toLowerCase().includes(q));
+  if (!rows.length) {
+    const message = syncError
+      ? 'Não foi possível ler a Google Sheet. Toca em Sync.'
+      : 'Ainda não há implantes na Sheet1 da Google Sheet.';
+    list.innerHTML = `<div class="empty-state"><strong>Sem dados de stock</strong>${escapeHtml(message)}</div>`;
+    return;
+  }
+
+  list.innerHTML = rows.map(item => {
+    const qty = available(item);
+    const status = itemStatus(item);
+    return `<article class="implant-card ${status} ${qty <= 0 ? 'disabled' : ''}" onclick="addSelection('${escapeHtml(item.id)}')">
+      <div class="implant-icon"><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M8 5h8M7 9h10M8 13h8M9 17h6"/></svg></div>
+      <div class="implant-main">
+        <div class="implant-title">${escapeHtml(item.tamanho)}</div>
+        <div class="implant-ref">${escapeHtml(item.referencia || 'sem referência')}</div>
+      </div>
+      <div class="qty-pill">${qty}</div>
+    </article>`;
+  }).join('');
+}
+
+function addSelection(id) {
+  const item = stock.find(i => i.id === id);
+  if (!item || available(item) <= 0) return toast('Stock insuficiente', 'error');
+  selection.push({ id: item.id, tamanho: item.tamanho, referencia: item.referencia || '', status: 'usado' });
+  renderAll();
+  toast('Implante seleccionado', 'success');
+}
+
+function removeOne(id) {
+  const idx = selection.findIndex(i => i.id === id);
+  if (idx >= 0) selection.splice(idx, 1);
+  renderAll();
+}
+function addOne(id) { addSelection(id); }
+function setStatus(id, status) { selection.filter(i => i.id === id).forEach(i => i.status = status); renderSelected(); }
+function clearSelection() { selection = []; renderAll(); }
+
+function groupedSelection() {
+  const map = new Map();
+  selection.forEach(i => {
+    const key = i.id;
+    if (!map.has(key)) map.set(key, { ...i, count: 0 });
+    map.get(key).count += 1;
+  });
+  return [...map.values()];
+}
+
+function renderSelected() {
+  const list = $('selectedList');
+  const grouped = groupedSelection();
+  if (!grouped.length) {
+    list.innerHTML = `<div class="empty-state"><strong>Nenhum implante seleccionado</strong>Toca nos implantes no ecrã Stock para os reservar para a cirurgia.</div>`;
+    validateSurgery();
+    return;
+  }
+  list.innerHTML = grouped.map(item => {
+    const status = item.status || 'usado';
+    return `<div class="select-card">
+      <div class="select-top">
+        <div class="implant-main">
+          <div class="implant-title">${escapeHtml(item.tamanho)} ×${item.count}</div>
+          <div class="implant-ref">${escapeHtml(item.referencia || 'sem referência')}</div>
+        </div>
+        <div class="stepper">
+          <button onclick="removeOne('${escapeHtml(item.id)}')" aria-label="Remover">−</button>
+          <b>${item.count}</b>
+          <button onclick="addOne('${escapeHtml(item.id)}')" aria-label="Adicionar">+</button>
+        </div>
+      </div>
+      <div class="segmented">
+        <button class="${status === 'usado' ? 'active used' : ''}" onclick="setStatus('${escapeHtml(item.id)}','usado')">Usado</button>
+        <button class="${status === 'devolvido' ? 'active returned' : ''}" onclick="setStatus('${escapeHtml(item.id)}','devolvido')">Devolvido</button>
+      </div>
+    </div>`;
+  }).join('');
+  validateSurgery();
+}
+
+function validateSurgery() {
+  $('saveBtn').disabled = !($('pacienteInput').value.trim() && $('dataInput').value && selection.length);
+}
+
+async function saveSurgery() {
+  validateSurgery();
+  if ($('saveBtn').disabled) return;
+  const btn = $('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'A guardar…';
+  const payload = { paciente: $('pacienteInput').value.trim(), data: $('dataInput').value, itens: selection };
+  try {
+    await apiCall('createCirurgia', payload);
+    selection = [];
+    $('pacienteInput').value = '';
+    $('dataInput').value = today();
+    await syncAll();
+    switchTab('historico');
+    toast('Cirurgia guardada', 'success');
+  } catch (err) {
+    console.error(err);
+    toast(err.message || 'Erro ao guardar cirurgia', 'error');
+  } finally {
+    btn.textContent = 'Guardar cirurgia';
+    validateSurgery();
+  }
+}
+
+async function addStockUi() {
+  const tamanho = $('repoTamanho').value.trim();
+  const qty = Number($('repoQty').value);
+  const ref = $('repoRef').value.trim();
+  if (!tamanho || !qty || qty <= 0) return toast('Preenche tamanho e quantidade', 'error');
+  try {
+    await apiCall('addStock', tamanho, qty, ref);
+    $('repoTamanho').value = '';
+    $('repoQty').value = '';
+    $('repoRef').value = '';
+    await syncAll();
+    toast('Stock actualizado', 'success');
+  } catch (err) {
+    console.error(err);
+    toast(err.message || 'Erro ao repor stock', 'error');
+  }
+}
+
+function renderHistory() {
+  const list = $('historyList');
+  if (!surgeries.length) {
+    list.innerHTML = `<div class="empty-state"><strong>Sem cirurgias registadas</strong>O histórico aparece aqui depois do primeiro registo.</div>`;
+    return;
+  }
+  list.innerHTML = [...surgeries].reverse().map(c => {
+    const usados = Array.isArray(c.usados) ? c.usados : [];
+    const devolvidos = Array.isArray(c.devolvidos) ? c.devolvidos : [];
+    const data = c.data ? new Date(c.data).toLocaleDateString('pt-PT') : '—';
+    const rows = [...usados.map(i => ({...i, status:'used'})), ...devolvidos.map(i => ({...i, status:'returned'}))];
+    return `<article class="history-card" onclick="this.classList.toggle('open')">
+      <div class="history-head">
+        <div><div class="history-title">${escapeHtml(c.paciente || 'Sem paciente')}</div><div class="history-meta">${data} · ${usados.length} usados · ${devolvidos.length} devolvidos</div></div>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="history-details">
+        ${rows.length ? rows.map(i => `<div class="used-row"><span>${escapeHtml(i.tamanho || i)}</span><span class="badge ${i.status}">${i.status === 'used' ? 'Usado' : 'Devolvido'}</span></div>`).join('') : '<div class="used-row">Sem detalhes</div>'}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function switchTab(tab) {
+  ['stock', 'cirurgia', 'historico'].forEach(t => {
+    $('page-' + t).classList.toggle('hidden', t !== tab);
+    $('tab-' + t).classList.toggle('active', t === tab);
+  });
+  if (tab === 'cirurgia' && !$('dataInput').value) $('dataInput').value = today();
+  if (tab === 'historico') apiCall('getCirurgias').then(data => { surgeries = data || []; renderHistory(); }).catch(err => toast(err.message || 'Erro no histórico', 'error'));
+}
+
+let toastTimer;
+function toast(message, type = '') {
+  const el = $('toast');
+  clearTimeout(toastTimer);
+  el.textContent = message;
+  el.className = `toast ${type}`;
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 2300);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('dataInput').value = today();
+  syncAll();
+});
+</script>
+</body>
+</html>
