@@ -77,8 +77,8 @@
   }
 
   .toprow { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-  .eyebrow { color: var(--muted); font-size: 13px; font-weight: 600; }
-  h1 { font-size: 34px; line-height: 1.02; letter-spacing: -1.15px; margin-top: 3px; }
+  .eyebrow { color: var(--muted); font-size: 15px; font-weight: 700; text-transform: lowercase; margin-top: 4px; }
+  h1 { font-size: 34px; line-height: 1.02; letter-spacing: -1.15px; margin-top: 0; }
   .sync-btn {
     border: 1px solid var(--stroke);
     color: #fff;
@@ -280,8 +280,8 @@
   <header class="topbar">
     <div class="toprow">
       <div>
-        <div class="eyebrow">GoSmile · Stock de implantes</div>
-        <h1>GoScale</h1>
+        <h1>GoSmile</h1>
+        <div class="eyebrow">stock de implantes</div>
       </div>
       <button class="sync-btn" id="syncBtn" onclick="syncAll()" aria-label="Sincronizar">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>
