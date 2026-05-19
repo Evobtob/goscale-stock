@@ -372,16 +372,29 @@ function gasCall(fn, ...args) {
   });
 }
 
+function apiUrl(action, params = {}) {
+  const url = new URL(API_BASE);
+  url.searchParams.set('action', action);
+  url.searchParams.set('_', Date.now().toString());
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) url.searchParams.set(key, typeof value === 'string' ? value : JSON.stringify(value));
+  });
+  return url;
+}
+
+async function fetchCall(action, params = {}) {
+  const response = await fetch(apiUrl(action, params).toString(), { cache: 'no-store' });
+  if (!response.ok) throw new Error(`API Google Sheet indisponível (${response.status}).`);
+  const payload = await response.json();
+  if (!payload || payload.ok === false) throw new Error(payload && payload.error ? payload.error : 'Erro na API.');
+  return payload.data;
+}
+
 function jsonpCall(action, params = {}) {
   return new Promise((resolve, reject) => {
     const cb = `__goscaleJsonp${Date.now()}_${jsonpSeq++}`;
-    const url = new URL(API_BASE);
-    url.searchParams.set('action', action);
+    const url = apiUrl(action, params);
     url.searchParams.set('callback', cb);
-    url.searchParams.set('_', Date.now().toString());
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) url.searchParams.set(key, typeof value === 'string' ? value : JSON.stringify(value));
-    });
 
     const script = document.createElement('script');
     const timer = setTimeout(() => cleanup(new Error('Tempo esgotado a contactar a Google Sheet.')), 15000);
@@ -401,11 +414,20 @@ function jsonpCall(action, params = {}) {
   });
 }
 
+async function externalApiCall(action, params = {}) {
+  try {
+    return await fetchCall(action, params);
+  } catch (fetchErr) {
+    console.warn('Fetch API falhou; a tentar JSONP.', fetchErr);
+    return jsonpCall(action, params);
+  }
+}
+
 function apiCall(fn, ...args) {
   if (hasGas) return gasCall(fn, ...args);
-  if (fn === 'getStock' || fn === 'getCirurgias') return jsonpCall(fn);
-  if (fn === 'addStock') return jsonpCall('addStock', { tamanho: args[0], quantidade: args[1], referencia: args[2] || '' });
-  if (fn === 'createCirurgia') return jsonpCall('createCirurgia', { payload: args[0] });
+  if (fn === 'getStock' || fn === 'getCirurgias') return externalApiCall(fn);
+  if (fn === 'addStock') return externalApiCall('addStock', { tamanho: args[0], quantidade: args[1], referencia: args[2] || '' });
+  if (fn === 'createCirurgia') return externalApiCall('createCirurgia', { payload: args[0] });
   return Promise.reject(new Error('Acção desconhecida.'));
 }
 
