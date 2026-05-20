@@ -136,6 +136,7 @@
   .search-box input::placeholder, .field::placeholder { color: var(--muted2); }
 
   .section-label { margin: 18px 2px 9px; color: var(--muted); font-size: 12px; font-weight: 750; letter-spacing: .65px; text-transform: uppercase; }
+  .home-credit { margin: 10px 0 0; text-align: center; color: #fff; font-size: 11px; font-weight: 600; opacity: .82; }
   .sync-status { margin: 10px 2px 0; min-height: 18px; color: var(--muted); font-size: 12px; font-weight: 650; }
   .sync-status.error { color: #ff9a93; }
   .sync-status.success { color: rgba(48,209,88,.95); }
@@ -303,6 +304,7 @@
       <input id="searchInput" type="search" placeholder="Pesquisar tamanho ou referência" oninput="renderStock()">
     </div>
     <div id="syncStatus" class="sync-status">A sincronizar com a Sheet…</div>
+    <div class="home-credit">App developed by Bruno Aires</div>
     <div class="section-label">Inventário</div>
     <div id="stockList" class="stock-list"></div>
   </main>
