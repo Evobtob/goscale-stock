@@ -677,7 +677,9 @@ async function returnUsedImplant(event, button, cirurgiaId, usedIndex) {
     toast('Implante reposto em stock', 'success');
     setTimeout(async () => {
       const [stockData, surgeryData] = await Promise.all([apiCall('getStock'), apiCall('getCirurgias')]);
-      stock = Array.isArray(stockData) ? stockData : [];
+      const normalizedStock = normalizeStockPayload(stockData);
+      stock = normalizedStock.items;
+      stockTotalFromSheet = normalizedStock.total;
       surgeries = Array.isArray(surgeryData) ? surgeryData : [];
       renderAll();
     }, 2000);
