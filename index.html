@@ -357,6 +357,7 @@ const API_BASE = 'https://script.google.com/macros/s/AKfycbxO-VJPbyy_bFrd5fCRN-8
 const hasGas = typeof google !== 'undefined' && google.script && google.script.run;
 let jsonpSeq = 0;
 let stock = [];
+let stockTotalFromSheet = null;
 let surgeries = [];
 let selection = []; // {id,tamanho,referencia,status}
 let lastSyncAt = null;
@@ -446,6 +447,18 @@ function friendlyError(err) {
   return message || 'Erro inesperado.';
 }
 
+function normalizeStockPayload(stockPayload) {
+  if (Array.isArray(stockPayload)) {
+    return { items: stockPayload, total: null };
+  }
+  const items = Array.isArray(stockPayload && stockPayload.items) ? stockPayload.items : [];
+  const total = Number(stockPayload && stockPayload.total);
+  return {
+    items,
+    total: Number.isFinite(total) ? total : null
+  };
+}
+
 async function syncAll() {
   const btn = $('syncBtn');
   const status = $('syncStatus');
@@ -454,7 +467,9 @@ async function syncAll() {
   status.textContent = 'A sincronizar com a Google Sheet…';
   try {
     const [stockData, surgeryData] = await Promise.all([apiCall('getStock'), apiCall('getCirurgias')]);
-    stock = Array.isArray(stockData) ? stockData : [];
+    const normalizedStock = normalizeStockPayload(stockData);
+    stock = normalizedStock.items;
+    stockTotalFromSheet = normalizedStock.total;
     surgeries = Array.isArray(surgeryData) ? surgeryData : [];
     lastSyncAt = new Date();
     syncError = null;
@@ -467,6 +482,7 @@ async function syncAll() {
     const message = friendlyError(err);
     syncError = { message };
     stock = [];
+    stockTotalFromSheet = null;
     surgeries = [];
     renderAll();
     status.className = 'sync-status error';
@@ -479,7 +495,8 @@ async function syncAll() {
 
 function renderAll() { renderStats(); renderStock(); renderSelected(); renderHistory(); validateSurgery(); }
 function renderStats() {
-  const total = stock.reduce((sum, i) => sum + Number(i.quantidade || 0), 0);
+  const fallbackTotal = stock.reduce((sum, i) => sum + Number(i.quantidade || 0), 0);
+  const total = Number.isFinite(stockTotalFromSheet) ? stockTotalFromSheet : fallbackTotal;
   const low = stock.filter(i => Number(i.quantidade || 0) > 0 && Number(i.quantidade || 0) <= 2).length;
   const zero = stock.filter(i => Number(i.quantidade || 0) <= 0).length;
   $('statTotal').textContent = total;
